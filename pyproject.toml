@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tiny-speculators"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "datasets",
+    "safetensors",
+    "torch>=2.9.0,<=2.12.1",
+    "transformers>=4.56.1,<5.14.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+include = ["tiny_speculators*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tiny_speculators/tests"]
