@@ -48,7 +48,9 @@ Speculative decoding pairs a small **draft model** with the original **verifier 
 
 **[EAGLE-3](https://arxiv.org/abs/2503.01840)** is a draft-model architecture that predicts tokens directly from the current token and hidden states collected from early, middle, and late layers of the frozen verifier. This multi-layer feature fusion gives the small, single-layer draft richer context while keeping drafting inexpensive.
 
-![EAGLE-3 draft model architecture](/assets/eagle-3-model-architecture.png)
+<p align="center">
+  <img src="assets/eagle-3-model-architecture.png" alt="EAGLE-3 draft model architecture" width="500">
+</p>
 
 To explain it in more detail, **for each token position in a document**, the model takes the previous step’s hidden states from three verifier layers—early, middle, and late—along with the verifier’s final hidden state.
 
@@ -64,7 +66,9 @@ Check [`eagle3/model.py`](tiny_speculators/eagle3/model.py) to see this in actua
 
 ## Training-Time Test
 
-![EAGLE-3 training flow](assets/ttt-training.png)
+<p align="center">
+  <img src="assets/ttt-training.png" alt="EAGLE-3 training flow" width="500">
+</p>
 
 Another important technique introduced in the paper is Training-Time Test (TTT).
 
@@ -87,7 +91,7 @@ See [`eagle3/attention.py`](tiny_speculators/eagle3/attention.py) for the implem
 I trained [10k](https://huggingface.co/junuxyz/Qwen3-8B-speculator.eagle3-10k) and [60k](https://huggingface.co/junuxyz/Qwen3-8B-speculator.eagle3-60k) checkpoints from ShareGPT subsets on a single NVIDIA H200 using [Modal](https://modal.com/).
 
 <p align="center">
-  <img src="assets/summary.png" width="900" />
+  <img src="assets/summary.png" width="700" />
   <br />
   <sub>H200 HumanEval latency, saturated throughput, and 60k draft acceptance.</sub>
 </p>
