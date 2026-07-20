@@ -1,4 +1,4 @@
-"""Tokenize ShareGPT conversations and save final-answer training targets."""
+"""Tokenize ShareGPT conversations and save assistant training targets."""
 
 from __future__ import annotations
 import argparse
@@ -41,22 +41,27 @@ def preprocess(row: dict) -> list[dict[str, str]] | None:
 
 
 def prepare_sample(tokenizer, messages: list[dict[str, str]]) -> tuple[list[int], list[bool]]:
-    """Return full conversation tokens and a mask for its final assistant answer."""
+    """Return full conversation tokens and a mask for all assistant answers."""
     full_text = tokenizer.apply_chat_template(
         messages,
         tokenize=False,
         add_generation_prompt=False,
         enable_thinking=Config.enable_thinking,
     )
-    answer = messages[-1]["content"]
-    answer_start = full_text.rfind(answer)
-    if answer_start == -1:
-        raise ValueError("Could not find the final assistant answer in the chat template")
-    answer_end = answer_start + len(answer)
+    assistant_spans = []
+    cursor = 0
+    for message in messages:
+        start = full_text.find(message["content"], cursor)
+        if start == -1:
+            raise ValueError("Could not find a message in the chat template")
+        end = start + len(message["content"])
+        if message["role"] == "assistant":
+            assistant_spans.append((start, end))
+        cursor = end
 
     encoded = tokenizer(full_text, add_special_tokens=False, return_offsets_mapping=True)
     loss_mask = [
-        token_start < answer_end and token_end > answer_start
+        any(token_start < end and token_end > start for start, end in assistant_spans)
         for token_start, token_end in encoded.offset_mapping
     ]
     return encoded.input_ids, loss_mask
