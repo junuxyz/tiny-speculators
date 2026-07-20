@@ -7,6 +7,7 @@ from pathlib import Path
 from tiny_speculators.eagle3.vocab import build_vocab_mappings
 from tiny_speculators.eagle3.config import DEFAULT_DRAFT_VOCAB_SIZE
 
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Build vocabulary mappings from token frequency distribution"
@@ -16,21 +17,21 @@ def parse_args() -> argparse.Namespace:
         "--draft-vocab-size",
         type=int,
         default=DEFAULT_DRAFT_VOCAB_SIZE,
-        )
-    
+    )
+
     parser.add_argument(
         "--data",
         type=Path,
         default=Config.data_dir,
         help="Directory containing vocab_info.pt",
-        )
+    )
 
     parser.add_argument(
         "--output-path",
         type=Path,
         help="Defaults to <data>/vocab_mapping.pt",
-        )
-    
+    )
+
     return parser.parse_args()
 
 
@@ -40,10 +41,10 @@ def main():
     path = args.data / "vocab_info.pt"
     if not path.exists():
         raise FileNotFoundError(f"Token frequency file not found: {path}")
-    
+
     output_path = args.output_path or args.data / "vocab_mapping.pt"
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     vocab_info = torch.load(path, weights_only=True)
     token_frequencies: dict[int, int] = vocab_info["token_frequencies"]
     target_vocab_size = vocab_info["vocab_size"]
@@ -61,6 +62,7 @@ def main():
         },
         output_path,
     )
+
 
 if __name__ == "__main__":
     main()

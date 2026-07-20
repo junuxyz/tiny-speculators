@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -6,7 +5,6 @@ from typing import Any
 PACKAGE_ROOT = Path(__file__).resolve().parent
 
 
-@dataclass(frozen=True)
 class Config:
     """Qwen3-8B defaults shared by every pipeline stage."""
 
@@ -17,11 +15,9 @@ class Config:
     enable_thinking: bool = False
     verifier_num_hidden_layers: int = 36
     eagle_aux_hidden_state_layer_ids: tuple[int, ...] = (2, 18, 33)
-    ttt_loss_decay: float = 1.0
 
 
-QWEN3_8B_ARCHITECTURE = {
-    "model_type": "qwen3",
+QWEN3_8B_CONFIG_DEFAULTS = {
     "hidden_size": 4_096,
     "intermediate_size": 12_288,
     "num_attention_heads": 32,
@@ -39,11 +35,17 @@ def validate_qwen3_8b_config(
 ) -> None:
     """Fail early when a pipeline stage is not configured for Qwen3-8B."""
 
-    expected = {**QWEN3_8B_ARCHITECTURE, "num_hidden_layers": num_hidden_layers}
+    expected = {
+        "model_type": "qwen3",
+        **QWEN3_8B_CONFIG_DEFAULTS,
+        "num_hidden_layers": num_hidden_layers,
+    }
     mismatches = []
     for name, expected_value in expected.items():
         actual_value = (
-            config.get(name) if isinstance(config, dict) else getattr(config, name, None)
+            config.get(name)
+            if isinstance(config, dict)
+            else getattr(config, name, None)
         )
         if actual_value != expected_value:
             mismatches.append(f"{name}={actual_value!r} (expected {expected_value!r})")

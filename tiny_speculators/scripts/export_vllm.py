@@ -33,9 +33,7 @@ def parse_args() -> argparse.Namespace:
 def build_vllm_config(native_config: dict, verifier: str) -> dict:
     """Translate a native EAGLE-3 config into vLLM Speculators format."""
 
-    transformer_config = copy.deepcopy(
-        native_config["transformer_layer_config"]
-    )
+    transformer_config = copy.deepcopy(native_config["transformer_layer_config"])
     if not isinstance(transformer_config, dict):
         raise TypeError("transformer_layer_config must be a dictionary")
     validate_qwen3_8b_config(transformer_config, num_hidden_layers=1)
@@ -54,9 +52,7 @@ def build_vllm_config(native_config: dict, verifier: str) -> dict:
         "draft_vocab_size": native_config["draft_vocab_size"],
         "eagle_aux_hidden_state_layer_ids": auxiliary_layers,
         "model_type": "speculators",
-        "norm_before_residual": native_config.get(
-            "norm_before_residual", False
-        ),
+        "norm_before_residual": native_config.get("norm_before_residual", False),
         "norm_before_fc": False,
         "fc_norm": False,
         "norm_output": False,
@@ -82,22 +78,13 @@ def build_vllm_config(native_config: dict, verifier: str) -> dict:
 
 
 def export_weights(weights_path: Path) -> dict:
-    """Load native weights and rename them for the vLLM checkpoint contract."""
+    """Load the weights required by the vLLM checkpoint contract."""
 
-    exported = {}
-    for name, tensor in load_file(weights_path, device="cpu").items():
-        if name.startswith("verifier_norm."):
-            continue
-        if name == "draft_to_target_offsets":
-            name = "d2t"
-        elif name == "target_to_draft":
-            name = "t2d"
-        elif name.startswith("decoder."):
-            name = name.replace("decoder.", "layers.0.", 1)
-
-        if name in exported:
-            raise ValueError(f"Duplicate exported weight: {name}")
-        exported[name] = tensor
+    exported = {
+        name: tensor
+        for name, tensor in load_file(weights_path, device="cpu").items()
+        if not name.startswith("verifier_norm.")
+    }
 
     missing = REQUIRED_WEIGHTS - exported.keys()
     if missing:

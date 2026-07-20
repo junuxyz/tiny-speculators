@@ -29,9 +29,7 @@ class SampleFileDataset(Dataset):
         data_id = data_path.stem.removeprefix("data_")
         data = torch.load(data_path, weights_only=True)
 
-        hidden_path = (
-            self.data_dir / "hidden_states" / f"hs_{data_id}.safetensors"
-        )
+        hidden_path = self.data_dir / "hidden_states" / f"hs_{data_id}.safetensors"
         hidden = load_file(hidden_path)
 
         if not torch.equal(data["input_ids"], hidden["token_ids"]):
@@ -45,11 +43,12 @@ class SampleFileDataset(Dataset):
             "loss_mask": data["loss_mask"],
         }
 
+
 def shift_sample(
-    input_ids: torch.Tensor,                   # [seq_len]
-    hidden_states: torch.Tensor,               # [seq_len, 3 * h]
-    verifier_last_hidden_states: torch.Tensor, # [seq_len, h]
-    loss_mask: torch.Tensor,                   # [seq_len]
+    input_ids: torch.Tensor,  # [seq_len]
+    hidden_states: torch.Tensor,  # [seq_len, 3 * h]
+    verifier_last_hidden_states: torch.Tensor,  # [seq_len, h]
+    loss_mask: torch.Tensor,  # [seq_len]
 ) -> dict[str, torch.Tensor]:
     """Align and batch one EAGLE-3 training sample."""
     seq_len = input_ids.shape[0]
@@ -67,36 +66,36 @@ def shift_sample(
 
 def pack_samples(samples: list[dict[str, torch.Tensor]]):
     lengths = torch.tensor(
-    [sample["input_ids"].shape[1] for sample in samples],
-    dtype=torch.long,
+        [sample["input_ids"].shape[1] for sample in samples],
+        dtype=torch.long,
     )
     packed = {
-    key: torch.cat(
-        [sample[key] for sample in samples],
-        dim=1,
-    )
-    for key in samples[0]
+        key: torch.cat(
+            [sample[key] for sample in samples],
+            dim=1,
+        )
+        for key in samples[0]
     }
     packed["lengths"] = lengths
     return packed
-    
-    
+
+
 def packed_batches(
-        dataset: Dataset,
-        indices: Iterable[int],
-        max_tokens: int,
+    dataset: Dataset,
+    indices: Iterable[int],
+    max_tokens: int,
 ) -> Iterator[dict[str, torch.Tensor]]:
-    
+
     samples: list[dict[str, torch.Tensor]] = []
     tokens = 0
 
     for index in indices:
         sample = shift_sample(**dataset[index])
         seq_len = sample["input_ids"].shape[1]
-        
+
         if seq_len > max_tokens:
             raise ValueError(f"seq_len {seq_len} exceeds max_tokens({max_tokens})")
-        
+
         if samples and tokens + seq_len > max_tokens:
             yield pack_samples(samples)
             samples = []

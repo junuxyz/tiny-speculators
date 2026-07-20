@@ -1,6 +1,5 @@
 """Tokenize ShareGPT conversations and save assistant training targets."""
 
-from __future__ import annotations
 import argparse
 from pathlib import Path
 import torch
@@ -11,14 +10,11 @@ from collections import Counter
 
 from tiny_speculators.config import Config, validate_qwen3_8b_config
 
+
 def preprocess(row: dict) -> list[dict[str, str]] | None:
     """Convert one ShareGPT row to the chat-template message format."""
-    role_map = {
-                "human": "user",
-                "gpt": "assistant",
-                "system": "system"
-                }
-    
+    role_map = {"human": "user", "gpt": "assistant", "system": "system"}
+
     turns = row.get("conversations")
     if not isinstance(turns, list):
         return None
@@ -40,7 +36,9 @@ def preprocess(row: dict) -> list[dict[str, str]] | None:
     return messages if messages and messages[-1]["role"] == "assistant" else None
 
 
-def prepare_sample(tokenizer, messages: list[dict[str, str]]) -> tuple[list[int], list[bool]]:
+def prepare_sample(
+    tokenizer, messages: list[dict[str, str]]
+) -> tuple[list[int], list[bool]]:
     """Return full conversation tokens and a mask for all assistant answers."""
     full_text = tokenizer.apply_chat_template(
         messages,
@@ -59,7 +57,9 @@ def prepare_sample(tokenizer, messages: list[dict[str, str]]) -> tuple[list[int]
             assistant_spans.append((start, end))
         cursor = end
 
-    encoded = tokenizer(full_text, add_special_tokens=False, return_offsets_mapping=True)
+    encoded = tokenizer(
+        full_text, add_special_tokens=False, return_offsets_mapping=True
+    )
     loss_mask = [
         any(token_start < end and token_end > start for start, end in assistant_spans)
         for token_start, token_end in encoded.offset_mapping
@@ -79,7 +79,7 @@ def prepare(
     tokenized_dir.mkdir(parents=True, exist_ok=True)
     # len(tokenizer) includes any added tokens, unlike tokenizer.vocab_size.
     token_frequencies: Counter[int] = Counter()
-    
+
     saved = skipped = 0
     for row in load_dataset(data, split="train", streaming=True):
         messages = preprocess(row)
@@ -92,7 +92,7 @@ def prepare(
             continue
         input_ids_tensor = torch.tensor(input_ids, dtype=torch.long)
         loss_mask_tensor = torch.tensor(loss_mask, dtype=torch.bool)
-        
+
         torch.save(
             {
                 "input_ids": input_ids_tensor,

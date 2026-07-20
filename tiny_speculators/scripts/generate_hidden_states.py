@@ -1,7 +1,5 @@
 """Generate target-model hidden states with vLLM offline inference."""
 
-from __future__ import annotations
-
 import argparse
 from pathlib import Path
 
@@ -33,7 +31,7 @@ def main() -> None:
     if args.max_samples is not None:
         if args.max_samples < 1:
             raise ValueError("--max-samples must be at least 1")
-        sources = sources[:args.max_samples]
+        sources = sources[: args.max_samples]
     if not sources:
         raise FileNotFoundError(f"No data_*.pt files found in {tokenized_dir}")
 
@@ -45,7 +43,7 @@ def main() -> None:
     target_layers = [
         *Config.eagle_aux_hidden_state_layer_ids,
         Config.verifier_num_hidden_layers,
-    ]  # low, mid, high, final teacher layer
+    ]  # low, mid, high, final layer
     # launch instance
     llm = LLM(
         model=args.model,

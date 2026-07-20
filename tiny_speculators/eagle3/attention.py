@@ -1,7 +1,11 @@
 """The attention pattern for iterative TTT branches."""
 
 import torch
-from torch.nn.attention.flex_attention import BlockMask, create_block_mask, flex_attention
+from torch.nn.attention.flex_attention import (
+    BlockMask,
+    create_block_mask,
+    flex_attention,
+)
 
 
 def document_ids(lengths: torch.Tensor) -> torch.Tensor:
@@ -45,23 +49,20 @@ def create_ttt_block_mask(
 
 
 def flex_attention_forward(
-        _module,
-        query: torch.Tensor,
-        key: torch.Tensor,
-        value: torch.Tensor,
-        attention_mask: BlockMask,
-        *,
-        scaling: float,
-        **_kwargs,
+    _module,
+    query: torch.Tensor,
+    key: torch.Tensor,
+    value: torch.Tensor,
+    attention_mask: BlockMask,
+    *,
+    scaling: float,
+    **_kwargs,
 ) -> tuple[torch.Tensor, None]:
     """Run FlexAttention and adapt its output layout for HuggingFace"""
 
     num_q_heads = query.shape[1]
     num_kv_heads = key.shape[1]
-    enable_gqa = (
-        num_q_heads > num_kv_heads
-        and num_q_heads % num_kv_heads == 0
-        )
+    enable_gqa = num_q_heads > num_kv_heads and num_q_heads % num_kv_heads == 0
 
     attention_output = flex_attention(
         query=query,
