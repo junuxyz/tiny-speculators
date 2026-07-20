@@ -55,16 +55,12 @@ def test_shift_sample_aligns_next_token_targets():
     )
 
     assert torch.equal(shifted["input_ids"], torch.tensor([[1, 2, 3]]))
-    assert torch.equal(
-        shifted["hidden_states"], torch.arange(6).reshape(1, 3, 2)
-    )
+    assert torch.equal(shifted["hidden_states"], torch.arange(6).reshape(1, 3, 2))
     assert torch.equal(
         shifted["verifier_last_hidden_states"],
         torch.arange(10, 16).reshape(1, 3, 2),
     )
-    assert torch.equal(
-        shifted["loss_mask"], torch.tensor([[True, False, True]])
-    )
+    assert torch.equal(shifted["loss_mask"], torch.tensor([[True, False, True]]))
     assert torch.equal(shifted["position_ids"], torch.tensor([[1, 2, 3]]))
 
 
@@ -121,7 +117,7 @@ def test_ttt_attention_preserves_documents_causality_and_anchors():
     assert not allowed(0, 6)
 
 
-def test_checkpoint_restores_model_optimizer_and_epoch(tmp_path):
+def test_checkpoint_restores_model_optimizer_and_progress(tmp_path):
     model = make_eagle3_draft_model()
     optimizer = torch.optim.AdamW(
         parameter for parameter in model.parameters() if parameter.requires_grad
@@ -136,21 +132,25 @@ def test_checkpoint_restores_model_optimizer_and_epoch(tmp_path):
         optimizer,
         epoch=2,
         best_val_loss=1.25,
-        max_samples=10,
-        train_ratio=0.9,
-        seed=42,
+        chunk_index=4,
+        validation_samples=["data_9.pt"],
     )
     with torch.no_grad():
         model.fc.weight.zero_()
 
-    next_epoch, best_val_loss = load_checkpoint(tmp_path, model, optimizer)
+    load_checkpoint(tmp_path, model, optimizer)
     restored_config = Eagle3SpeculatorConfig.from_pretrained(tmp_path)
+    trainer_state = torch.load(
+        tmp_path / "trainer_state.pt",
+        weights_only=True,
+    )
 
     assert torch.equal(model.fc.weight, original_fc_weight)
     assert optimizer.state
     assert restored_config.ttt_steps == model.config.ttt_steps
-    assert next_epoch == 3
-    assert best_val_loss == 1.25
+    assert trainer_state["epoch"] == 2
+    assert trainer_state["chunk_index"] == 4
+    assert trainer_state["best_val_loss"] == 1.25
 
 
 @pytest.mark.skipif(
@@ -163,19 +163,16 @@ def test_tiny_forward_computes_loss_and_gradients():
     seq_len = 4
     hidden_size = model.qwen3_config.hidden_size
 
-    loss, draft_tokens, metrics = model(
+    loss, metrics = model(
         hidden_states=torch.randn(1, seq_len, 3 * hidden_size, device=device),
         input_ids=torch.tensor([[0, 2, 4, 6]], device=device),
         lengths=torch.tensor([seq_len], device=device),
         position_ids=torch.arange(1, seq_len + 1, device=device)[None],
-        verifier_last_hidden_states=torch.randn(
-            1, seq_len, hidden_size, device=device
-        ),
+        verifier_last_hidden_states=torch.randn(1, seq_len, hidden_size, device=device),
         loss_mask=torch.ones(1, seq_len, dtype=torch.bool, device=device),
     )
 
     assert loss.isfinite()
-    assert len(draft_tokens) == model.config.ttt_steps
     assert metrics.keys() >= {"loss", "loss_0", "loss_1", "loss_2"}
 
     loss.backward()
