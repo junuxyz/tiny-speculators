@@ -91,7 +91,7 @@ def test_qwen3_8b_defaults_are_consistent():
         num_hidden_layers=1,
     )
     assert Config.verifier == "Qwen/Qwen3-8B"
-    assert Config.max_model_len == 8_192
+    assert Config.max_model_len == 4_096
     assert config.eagle_aux_hidden_state_layer_ids == [2, 18, 33]
     assert config.norm_before_residual is True
 

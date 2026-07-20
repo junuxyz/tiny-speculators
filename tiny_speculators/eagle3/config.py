@@ -30,7 +30,7 @@ class Eagle3SpeculatorConfig(PretrainedConfig):
         transformer_layer_config: Qwen3Config | dict | None = None,
         draft_vocab_size: int = DEFAULT_DRAFT_VOCAB_SIZE,
         ttt_steps: int = 3,
-        ttt_loss_decay: float = 1.0,
+        ttt_loss_decay: float = Config.ttt_loss_decay,
         eagle_aux_hidden_state_layer_ids: list[int] | None = None,
         norm_before_residual: bool = True,
         **kwargs,

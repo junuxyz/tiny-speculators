@@ -212,7 +212,7 @@ class Eagle3DraftModel(PreTrainedModel):
                 accuracy = (
                     predictions[step_loss_mask] == target_tokens[step_loss_mask]
                 ).float().mean()
-            loss += (self.config.ttt_loss_decay**ttt_step) * s_loss # weight more on earlier steps
+            loss += (self.config.ttt_loss_decay**ttt_step) * s_loss
             metrics[f"loss_{ttt_step}"] = s_loss.detach()
             metrics[f"accuracy_{ttt_step}"] = accuracy.detach()
 

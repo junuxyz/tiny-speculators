@@ -13,10 +13,11 @@ class Config:
     verifier: str = "Qwen/Qwen3-8B"
     dataset: str = "Aeala/ShareGPT_Vicuna_unfiltered"
     data_dir: Path = PACKAGE_ROOT / "data" / "qwen3-8b-sharegpt"
-    max_model_len: int = 8_192
+    max_model_len: int = 4_096
     enable_thinking: bool = False
     verifier_num_hidden_layers: int = 36
     eagle_aux_hidden_state_layer_ids: tuple[int, ...] = (2, 18, 33)
+    ttt_loss_decay: float = 1.0
 
 
 QWEN3_8B_ARCHITECTURE = {

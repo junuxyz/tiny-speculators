@@ -11,6 +11,8 @@
 
 from pathlib import Path
 import argparse
+import json
+import time
 from safetensors.torch import load_file
 from tiny_speculators.eagle3.data import SampleFileDataset, packed_batches
 from tiny_speculators.eagle3.vocab import load_vocab_mapping
@@ -29,7 +31,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--weight-decay", type=float, default=0.01)
     parser.add_argument("--output", type=Path, default=Path("checkpoints/eagle3"))
-    parser.add_argument("--max-batch-tokens", type=int, default=8_192)
+    parser.add_argument("--metrics-file", type=Path)
+    parser.add_argument(
+        "--max-batch-tokens",
+        type=int,
+        default=Config.max_model_len,
+    )
     parser.add_argument("--epochs", type=int, default=1)
     parser.add_argument("--train-ratio", type=float)
     parser.add_argument("--seed", type=int)
@@ -120,6 +127,23 @@ def load_checkpoint(
 
 def main() -> None:
     args = parse_args()
+    metrics_file = args.metrics_file
+    if metrics_file is not None:
+        metrics_file.parent.mkdir(parents=True, exist_ok=True)
+    metrics_stream = metrics_file.open("a") if metrics_file is not None else None
+
+    def record(phase: str, epoch: int, step: int, metrics: dict) -> None:
+        if metrics_stream is not None:
+            metrics_stream.write(
+                json.dumps({
+                    "time": time.time(),
+                    "phase": phase,
+                    "epoch": epoch,
+                    "step": step,
+                    **metrics,
+                }) + "\n"
+            )
+            metrics_stream.flush()
     if args.resume is None:
         args.train_ratio = 0.9 if args.train_ratio is None else args.train_ratio
         args.seed = 42 if args.seed is None else args.seed
@@ -264,6 +288,12 @@ def main() -> None:
                 f"{key}={value.item():.4f}" for key, value in metrics.items()
             )
             print(f"epoch={epoch} step={step} {metric_text}", flush=True)
+            record(
+                "train",
+                epoch,
+                step,
+                {key: value.item() for key, value in metrics.items()},
+            )
 
         train_metrics = {
             key: value / train_steps
@@ -287,6 +317,12 @@ def main() -> None:
                     )
                 for key, value in metrics.items():
                     val_totals[key] = val_totals.get(key, 0.0) + value.item()
+                record(
+                    "validation",
+                    epoch,
+                    val_steps,
+                    {key: value.item() for key, value in metrics.items()},
+                )
 
         val_metrics = {
             key: value / val_steps
@@ -298,8 +334,19 @@ def main() -> None:
             f"val_loss={val_metrics['loss']:.6f}",
             flush=True,
         )
+        is_best = val_metrics["loss"] < best_val_loss
+        record(
+            "epoch",
+            epoch,
+            train_steps,
+            {
+                **{f"train_{key}": value for key, value in train_metrics.items()},
+                **{f"val_{key}": value for key, value in val_metrics.items()},
+                "best": is_best,
+            },
+        )
 
-        if val_metrics["loss"] < best_val_loss:
+        if is_best:
             best_val_loss = val_metrics["loss"]
             best_path = args.output / "best"
             save_checkpoint(
@@ -326,6 +373,8 @@ def main() -> None:
         seed=args.seed,
     )
     print(f"Saved checkpoint to {args.output}", flush=True)
+    if metrics_stream is not None:
+        metrics_stream.close()
 
 if __name__ == "__main__":
     main()
