@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tiny-speculators"
 version = "0.1.0"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "datasets",
     "safetensors",
@@ -16,6 +16,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest",
+    "ruff>=0.15.22",
 ]
 
 [tool.setuptools.packages.find]
